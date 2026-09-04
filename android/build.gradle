@@ -1,0 +1,22 @@
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        // Yeh do backup repositories hain jo file ko dhoodhne mein madad karengi
+        maven { url "https://plugins.gradle.org/m2/" }
+        maven { url "https://repo1.maven.org/maven2/" }
+    }
+}
+
+rootProject.buildDir = "../build"
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}
+
