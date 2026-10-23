@@ -4,7 +4,6 @@ import difflib
 import torch
 from openai import OpenAI
 from faster_whisper import WhisperModel
-
 import config
 
 client = OpenAI(api_key=config.OPENAI_API_KEY)
@@ -71,10 +70,9 @@ def translate_text_with_gpt(text, target_language, original_language):
                     "role": "system",
                     "content": f"""You are a professional film dubbing dialogue writer and cinematic translator. 
 Translate the text from {original_language} to {target_language}.
-
 CRITICAL INSTRUCTIONS FOR CINEMATIC DUBBING:
 1. NEVER TRANSLATE LITERALLY: Capture emotional meaning, dramatic weight, and character tone suitable for high-quality movie dubbing.
-2. ACTION & BATTLE CRIES: Action exclamations or commands (e.g., 'Pusu!', 'Ambush!', 'Attack!') must be translated into natural, strong action words in {target_language} (e.g. 'घात!', 'हमला!'), NEVER phonetically transliterated.
+2. ACTION & BATTLE CRIES: Action exclamations or commands must be translated into natural, strong action words in {target_language}, NEVER phonetically transliterated.
 3. CONTEXT AWARENESS: Process Romanized/Hinglish keyboard edits accurately to their native {original_language} meaning. Keep historical/philosophical terms precise.
 4. ZERO HALLUCINATION: Translate ONLY the provided dialogue. Do NOT add external quotes, extra sentences, or unrequested idioms.
 5. Return ONLY the final translated dialogue text."""
@@ -152,7 +150,7 @@ def merge_consecutive_speaker_segments(segments):
     merged.append(current)
     return merged
 
-def transcribe_and_diarize_only(vocals_path, session_segments, original_language):
+def transcribe_and_diarize_only(vocals_path, session_segments, original_language, target_language="English"):
     orig_lower = original_language.strip().lower()
     lang_code = LANG_CODES.get(orig_lower, None) if orig_lower != "auto-detect" else None
     
@@ -200,12 +198,12 @@ def transcribe_and_diarize_only(vocals_path, session_segments, original_language
     
     for seg in merged_segments:
         seg["original_text"] = clean_transcript_with_gpt(seg["text"], original_language)
-        seg["translated_text"] = translate_text_with_gpt(seg["original_text"], "English", original_language)
+        seg["translated_text"] = translate_text_with_gpt(seg["original_text"], target_language, original_language)
         
     return merged_segments
 
 def translate_segments(vocals_path, session_segments, target_language: str, original_language: str = "Auto-Detect"):
-    raw_segments = transcribe_and_diarize_only(vocals_path, session_segments, original_language)
+    raw_segments = transcribe_and_diarize_only(vocals_path, session_segments, original_language, target_language)
     for seg in raw_segments:
         seg["translated_text"] = translate_text_with_gpt(seg.get("original_text", seg.get("text", "")), target_language, original_language)
     return raw_segments

@@ -6,7 +6,6 @@ import librosa
 import numpy as np
 import noisereduce as nr
 from pyannote.audio import Pipeline
-
 import config
 
 os.environ["HF_TOKEN"] = getattr(config, "HUGGINGFACE_TOKEN", "")

@@ -1,20 +1,13 @@
-# processor/lip_sync.py
 import subprocess
 import os
 import shutil
 from processor.tts_engine import delete_cloned_voices
 
 def mix_audio_and_sync_video(original_video_path, background_audio_path, dubbed_segments_audio, output_video_path, speaker_voice_registry=None):
-    """
-    Ye function background audio aur dubbed segments ko mix karega, 
-    LatentSync model ki madad se lip-sync karega, GFPGAN se face enhance karega, 
-    aur Real-ESRGAN se Full HD upscale karke cloned voices ko delete kar dega.
-    """
     print("Starting Audio Mixing, LatentSync, GFPGAN & Real-ESRGAN Pipeline...")
     
     temp_dubbed_audio = "processor/temp_dubbed_output.mp3"
     
-    # Step 1: Combine all dubbed audio segments
     with open(temp_dubbed_audio, "wb") as outfile:
         for seg in dubbed_segments_audio:
             if "audio_bytes" in seg:
@@ -25,7 +18,6 @@ def mix_audio_and_sync_video(original_video_path, background_audio_path, dubbed_
             
     print("Dubbed audio combined successfully.")
     
-    # --- Step 2: Auto-detect and Fix Background Audio Path ---
     if background_audio_path and not os.path.exists(background_audio_path):
         print(f"⚠️ Original background path not found: {background_audio_path}")
         alt_mp3 = background_audio_path.replace(".wav", ".mp3")
@@ -46,7 +38,6 @@ def mix_audio_and_sync_video(original_video_path, background_audio_path, dubbed_
                 print("⚠️ Background music file missing. Continuing with dubbed voice only.")
                 background_audio_path = None
 
-    # Step 2 (b): Mix Dubbed Voice + Background Music via FFmpeg
     final_mixed_audio = "processor/final_mixed_audio.mp3"
     
     if background_audio_path and os.path.exists(background_audio_path):
@@ -72,7 +63,6 @@ def mix_audio_and_sync_video(original_video_path, background_audio_path, dubbed_
         print(f"Error mixing audio with FFmpeg: {e}")
         return None
 
-    # --- Step 3: LatentSync Integration ---
     print("Running LatentSync for lip-sync...")
     latentsync_dir = os.path.abspath("LatentSync")
     if not os.path.exists(latentsync_dir):
@@ -104,7 +94,6 @@ def mix_audio_and_sync_video(original_video_path, background_audio_path, dubbed_
             delete_cloned_voices(speaker_voice_registry)
         return None
 
-    # --- Step 4: GFPGAN Face Quality Enhancement ---
     print("Applying GFPGAN for face quality enhancement...")
     gfpgan_output = "processor/temp_gfpgan_output.mp4"
     try:
@@ -125,7 +114,6 @@ def mix_audio_and_sync_video(original_video_path, background_audio_path, dubbed_
         print(f"GFPGAN warning: {e}")
         gfpgan_output = latentsync_output
 
-    # --- Step 5: Real-ESRGAN Full HD Quality Restoration ---
     print("Applying Real-ESRGAN for Full HD quality upscaling...")
     try:
         if os.path.exists("inference_realesrgan_video.py"):
@@ -140,12 +128,10 @@ def mix_audio_and_sync_video(original_video_path, background_audio_path, dubbed_
         else:
             print("⚠️ Real-ESRGAN script not found. Using direct output.")
             shutil.copy(gfpgan_output, output_video_path)
-            
     except Exception as e:
         print(f"Real-ESRGAN upscaling error: {e}")
         shutil.copy(gfpgan_output, output_video_path)
 
-    # --- Step 6: Cleanup Cloned Voices from ElevenLabs ---
     if speaker_voice_registry:
         delete_cloned_voices(speaker_voice_registry)
         
